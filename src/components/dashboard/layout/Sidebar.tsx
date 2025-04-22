@@ -107,6 +107,13 @@ const salesItems: NavItem[] = [
     translationKey: "invoices",
   },
   {
+    title: "Chalans",
+    icon: <ClipboardList className="h-5 w-5" />,
+    href: "/dashboard/chalans",
+    color: "text-indigo-600",
+    translationKey: "chalans",
+  },
+  {
     title: "Returns",
     icon: <Box className="h-5 w-5" />,
     href: "/dashboard/returns",

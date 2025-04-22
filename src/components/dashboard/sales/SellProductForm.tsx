@@ -39,6 +39,9 @@ type CartItem = {
   available_quantity: number;
   subtotal: number;
   supplier_name: string;
+  discount: number;
+  discount_type: "percentage" | "fixed";
+  discount_amount: number;
 };
 
 export function SellProductForm() {
@@ -68,33 +71,8 @@ export function SellProductForm() {
   }, []);
 
   useEffect(() => {
-    const newSubtotal = cartItems.reduce((sum, item) => sum + item.subtotal, 0);
-    setSubtotal(newSubtotal);
-  }, [cartItems]);
-
-  useEffect(() => {
-    if (discountType === "percentage") {
-      const percentage = parseFloat(discountValue) || 0;
-      const amount = (subtotal * percentage) / 100;
-      setDiscountAmount(amount);
-    } else {
-      setDiscountAmount(parseFloat(discountValue) || 0);
-    }
-  }, [subtotal, discountType, discountValue]);
-
-  useEffect(() => {
-    const rate = parseFloat(taxRate) || 0;
-    const amount = ((subtotal - discountAmount) * rate) / 100;
-    setTaxAmount(amount);
-  }, [subtotal, discountAmount, taxRate]);
-
-  useEffect(() => {
-    const total = subtotal - discountAmount + taxAmount;
-    setTotalAmount(total);
-
-    const advance = parseFloat(advancePayment) || 0;
-    setRemainingAmount(Math.max(0, total - advance));
-  }, [subtotal, discountAmount, taxAmount, advancePayment]);
+    calculateTotals();
+  }, [cartItems, discountType, discountValue, taxRate, advancePayment]);
 
   async function fetchShops() {
     try {
@@ -118,6 +96,43 @@ export function SellProductForm() {
       });
     }
   }
+
+  const calculateTotals = () => {
+    // Calculate subtotal after per-product discounts
+    const itemsSubtotal = cartItems.reduce(
+      (sum, item) => sum + item.subtotal,
+      0,
+    );
+    const perProductDiscounts = cartItems.reduce(
+      (sum, item) => sum + (item.discount_amount || 0),
+      0,
+    );
+    const newSubtotal = itemsSubtotal - perProductDiscounts;
+
+    setSubtotal(newSubtotal);
+
+    // Calculate additional cart-level discount
+    let newDiscountAmount = 0;
+    if (discountType === "percentage") {
+      const percentage = parseFloat(discountValue) || 0;
+      newDiscountAmount = (newSubtotal * percentage) / 100;
+    } else {
+      newDiscountAmount = parseFloat(discountValue) || 0;
+    }
+    setDiscountAmount(newDiscountAmount);
+
+    // Calculate tax on amount after all discounts
+    const newTaxAmount =
+      ((newSubtotal - newDiscountAmount) * (parseFloat(taxRate) || 0)) / 100;
+    setTaxAmount(newTaxAmount);
+
+    // Calculate final total
+    const newTotal = newSubtotal - newDiscountAmount + newTaxAmount;
+    setTotalAmount(newTotal);
+
+    const advance = parseFloat(advancePayment) || 0;
+    setRemainingAmount(Math.max(0, newTotal - advance));
+  };
 
   const handleAddToCart = async (product: Product) => {
     const { data: productData, error: productError } = await supabase
@@ -169,6 +184,12 @@ export function SellProductForm() {
 
       item.quantity += 1;
       item.subtotal = item.selling_price * item.quantity;
+      // Recalculate discount amount
+      if (item.discount_type === "percentage") {
+        item.discount_amount = (item.subtotal * item.discount) / 100;
+      } else {
+        item.discount_amount = Math.min(item.discount, item.subtotal);
+      }
       setCartItems(updatedItems);
     } else {
       if (product.quantity <= 0) {
@@ -190,6 +211,9 @@ export function SellProductForm() {
         available_quantity: product.quantity,
         subtotal: product.selling_price,
         supplier_name: supplierName || "Unknown Supplier",
+        discount: 0,
+        discount_type: "percentage",
+        discount_amount: 0,
       };
 
       setCartItems([...cartItems, newItem]);
@@ -219,10 +243,20 @@ export function SellProductForm() {
 
         if (newQuantity < 1) newQuantity = 1;
 
+        const newSubtotal = item.selling_price * newQuantity;
+        let discountAmount = 0;
+
+        if (item.discount_type === "percentage") {
+          discountAmount = (newSubtotal * item.discount) / 100;
+        } else {
+          discountAmount = Math.min(item.discount, newSubtotal);
+        }
+
         return {
           ...item,
           quantity: newQuantity,
-          subtotal: item.selling_price * newQuantity,
+          subtotal: newSubtotal,
+          discount_amount: discountAmount,
         };
       }
       return item;
@@ -236,10 +270,48 @@ export function SellProductForm() {
 
     const updatedItems = cartItems.map((item) => {
       if (item.id === itemId) {
+        const newSubtotal = newPrice * item.quantity;
+        let discountAmount = 0;
+
+        if (item.discount_type === "percentage") {
+          discountAmount = (newSubtotal * item.discount) / 100;
+        } else {
+          discountAmount = Math.min(item.discount, newSubtotal);
+        }
+
         return {
           ...item,
           selling_price: newPrice,
-          subtotal: newPrice * item.quantity,
+          subtotal: newSubtotal,
+          discount_amount: discountAmount,
+        };
+      }
+      return item;
+    });
+
+    setCartItems(updatedItems);
+  };
+
+  const handleDiscountChange = (
+    itemId: string,
+    discount: number,
+    discountType: "percentage" | "fixed",
+  ) => {
+    const updatedItems = cartItems.map((item) => {
+      if (item.id === itemId) {
+        let discountAmount = 0;
+
+        if (discountType === "percentage") {
+          discountAmount = (item.subtotal * discount) / 100;
+        } else {
+          discountAmount = Math.min(discount, item.subtotal);
+        }
+
+        return {
+          ...item,
+          discount,
+          discount_type: discountType,
+          discount_amount: discountAmount,
         };
       }
       return item;
@@ -351,8 +423,11 @@ export function SellProductForm() {
         supplier_name: item.supplier_name || "Unknown Supplier",
         created_at: new Date().toISOString(),
         product_name: item.name || "Unknown Product",
-        barcode: item.barcode || null,
-        watt: null,
+        barcode: item.barcode || "",
+        watt: 0,
+        discount: item.discount || 0,
+        discount_type: item.discount_type || "percentage",
+        discount_amount: item.discount_amount || 0,
       }));
 
       const { error: itemsError } = await supabase
@@ -487,7 +562,11 @@ export function SellProductForm() {
                       <span>
                         $
                         {cartItems
-                          .reduce((sum, item) => sum + item.subtotal, 0)
+                          .reduce(
+                            (sum, item) =>
+                              sum + item.subtotal - (item.discount_amount || 0),
+                            0,
+                          )
                           .toFixed(2)}
                       </span>
                     </div>
@@ -527,6 +606,7 @@ export function SellProductForm() {
                               <TableHead>Supplier</TableHead>
                               <TableHead>Price</TableHead>
                               <TableHead>Quantity</TableHead>
+                              <TableHead>Discount</TableHead>
                               <TableHead>Subtotal</TableHead>
                               <TableHead className="w-[50px]"></TableHead>
                             </TableRow>
@@ -612,7 +692,59 @@ export function SellProductForm() {
                                   </p>
                                 </TableCell>
                                 <TableCell>
-                                  ${item.subtotal.toFixed(2)}
+                                  <div className="flex items-center space-x-2">
+                                    <Select
+                                      value={item.discount_type}
+                                      onValueChange={(
+                                        value: "percentage" | "fixed",
+                                      ) =>
+                                        handleDiscountChange(
+                                          item.id,
+                                          item.discount,
+                                          value,
+                                        )
+                                      }
+                                    >
+                                      <SelectTrigger className="w-[80px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="percentage">
+                                          %
+                                        </SelectItem>
+                                        <SelectItem value="fixed">$</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step={
+                                        item.discount_type === "percentage"
+                                          ? "1"
+                                          : "0.01"
+                                      }
+                                      value={item.discount}
+                                      onChange={(e) =>
+                                        handleDiscountChange(
+                                          item.id,
+                                          parseFloat(e.target.value) || 0,
+                                          item.discount_type,
+                                        )
+                                      }
+                                      className="w-20"
+                                    />
+                                    {item.discount > 0 && (
+                                      <p className="text-xs text-green-600">
+                                        -${item.discount_amount.toFixed(2)}
+                                      </p>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  $
+                                  {(
+                                    item.subtotal - item.discount_amount
+                                  ).toFixed(2)}
                                 </TableCell>
                                 <TableCell>
                                   <Button

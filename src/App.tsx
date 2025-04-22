@@ -19,6 +19,7 @@ import Costs from "./components/pages/costs";
 import EmployeeSalaryPage from "./components/pages/employee-salary";
 import Customers from "./components/pages/customers";
 import Returns from "./components/pages/returns";
+import Chalans, { ChalanDetail } from "./components/pages/chalans";
 import { AuthProvider, useAuth } from "../supabase/auth";
 import { Toaster } from "./components/ui/toaster";
 import { LoadingScreen } from "./components/ui/loading-spinner";
@@ -203,6 +204,32 @@ function AppRoutes() {
           element={
             <PrivateRoute>
               <Returns />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Chalans route */}
+        <Route
+          path="/dashboard/chalans"
+          element={
+            <PrivateRoute>
+              <Chalans />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/chalans/:id"
+          element={
+            <PrivateRoute>
+              <ChalanDetail />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard/chalans/:id/download"
+          element={
+            <PrivateRoute>
+              <ChalanDetail />
             </PrivateRoute>
           }
         />
