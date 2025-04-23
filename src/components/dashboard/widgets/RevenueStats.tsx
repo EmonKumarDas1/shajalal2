@@ -117,9 +117,15 @@ export function RevenueStats() {
     startDate: subMonths(new Date(), 1).toISOString().split("T")[0],
     endDate: new Date().toISOString().split("T")[0],
   });
+  const [outerProductStats, setOuterProductStats] = useState({
+    expenses: 0,
+    income: 0,
+    profit: 0,
+  });
 
   useEffect(() => {
     fetchFinancialData();
+    fetchOuterProductStats();
 
     // Set up real-time subscriptions
     const subscriptions = [
@@ -128,7 +134,10 @@ export function RevenueStats() {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "invoice_items" },
-          () => fetchFinancialData(),
+          () => {
+            fetchFinancialData();
+            fetchOuterProductStats();
+          },
         )
         .subscribe(),
       supabase
@@ -169,6 +178,107 @@ export function RevenueStats() {
       subscriptions.forEach((sub) => supabase.removeChannel(sub));
     };
   }, [timeFilter, customDateRange]);
+
+  async function fetchOuterProductStats() {
+    try {
+      setLoading(true);
+
+      // Determine date ranges based on timeFilter
+      let currentPeriodStart: Date, currentPeriodEnd: Date;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      switch (timeFilter) {
+        case "daily":
+          currentPeriodStart = today;
+          currentPeriodEnd = new Date(today);
+          currentPeriodEnd.setHours(23, 59, 59, 999);
+          break;
+        case "yearly":
+          currentPeriodStart = new Date(today.getFullYear(), 0, 1);
+          currentPeriodEnd = new Date(
+            today.getFullYear(),
+            11,
+            31,
+            23,
+            59,
+            59,
+            999,
+          );
+          break;
+        case "custom":
+          currentPeriodStart = new Date(customDateRange.startDate);
+          currentPeriodEnd = new Date(customDateRange.endDate);
+          currentPeriodEnd.setHours(23, 59, 59, 999);
+          break;
+        case "monthly":
+        default:
+          currentPeriodStart = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1,
+          );
+          currentPeriodEnd = new Date(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            0,
+            23,
+            59,
+            59,
+            999,
+          );
+          break;
+      }
+
+      const currentStartStr = currentPeriodStart.toISOString();
+      const currentEndStr = currentPeriodEnd.toISOString();
+
+      // Fetch outer product items (using is_outer_product flag)
+      const { data: outerItems, error: outerError } = await supabase
+        .from("invoice_items")
+        .select("*")
+        .eq("is_outer_product", true)
+        .gte("created_at", currentStartStr)
+        .lte("created_at", currentEndStr);
+
+      if (outerError) throw outerError;
+
+      if (outerItems && outerItems.length > 0) {
+        // Calculate income from outer products
+        const income = outerItems.reduce((sum, item) => {
+          return (
+            sum +
+            (Number(item.total_price) || 0) -
+            (Number(item.discount_amount) || 0)
+          );
+        }, 0);
+
+        // Calculate expenses using the stored buying_price
+        const expenses = outerItems.reduce((sum, item) => {
+          return (
+            sum +
+            (Number(item.buying_price) || 0) * (Number(item.quantity) || 0)
+          );
+        }, 0);
+
+        const profit = income - expenses;
+
+        setOuterProductStats({
+          expenses,
+          income,
+          profit,
+        });
+      } else {
+        setOuterProductStats({
+          expenses: 0,
+          income: 0,
+          profit: 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching outer product stats:", error);
+    }
+  }
 
   async function fetchFinancialData() {
     try {
@@ -348,7 +458,28 @@ export function RevenueStats() {
         {} as { [key: string]: number },
       );
 
+      // Get outer product income for the current period to exclude from regular income
+      const { data: currentOuterItems } = await supabase
+        .from("invoice_items")
+        .select("invoice_id, total_price, discount_amount")
+        .eq("is_outer_product", true)
+        .gte("created_at", currentStartStr)
+        .lte("created_at", currentEndStr);
+
+      // Map of invoice IDs that contain outer products
+      const outerProductInvoiceIds = (currentOuterItems || []).reduce(
+        (acc, item) => {
+          acc[item.invoice_id] = true;
+          return acc;
+        },
+        {} as { [key: string]: boolean },
+      );
+
+      // Calculate regular income (excluding outer product invoices)
       const currentIncome = (salesInvoices || []).reduce((sum, invoice) => {
+        // Skip invoices that contain outer products
+        if (outerProductInvoiceIds[invoice.id]) return sum;
+
         const paymentsReceived = currentPaymentMap[invoice.id] || 0;
         const advance = Number(invoice.advance_payment || 0);
         return sum + paymentsReceived + advance;
@@ -372,6 +503,7 @@ export function RevenueStats() {
         0,
       );
 
+      // Calculate other expenses
       const currentOthersExpenses = (currentOthersCosts || []).reduce(
         (sum, item) => sum + Number(item.amount || 0),
         0,
@@ -570,18 +702,186 @@ export function RevenueStats() {
           )}
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-        {stats.map((stat, index) => (
-          <Stat
-            key={index}
-            title={stat.title}
-            value={stat.value}
-            change={stat.change}
-            description={stat.description}
-            icon={stat.icon}
-            loading={loading}
-          />
-        ))}
+
+      {/* Combined Stats (Regular + Outer Products) */}
+      <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg shadow border border-blue-100">
+        <h3 className="text-lg font-medium mb-3 text-blue-800">
+          Combined Financial Summary
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Total figures including both regular and outer products
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="bg-white border-blue-100">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium text-blue-800">
+                Total Income
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-900">
+                ${(dailyIncome + outerProductStats.income).toFixed(2)}
+              </div>
+              <div className="mt-1 flex items-center text-sm">
+                {incomeChange.type === "increase" ? (
+                  <ArrowUp className="mr-1 h-4 w-4 text-green-600" />
+                ) : (
+                  <ArrowDown className="mr-1 h-4 w-4 text-red-600" />
+                )}
+                <span
+                  className={
+                    incomeChange.type === "increase"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                >
+                  {incomeChange.value}
+                </span>
+                <span className="ml-1 text-gray-500">{description}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-blue-100">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium text-blue-800">
+                Total Expenses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-900">
+                ${(totalExpenses + outerProductStats.expenses).toFixed(2)}
+              </div>
+              <div className="mt-1 flex items-center text-sm">
+                {expensesChange.type === "increase" ? (
+                  <ArrowUp className="mr-1 h-4 w-4 text-red-600" />
+                ) : (
+                  <ArrowDown className="mr-1 h-4 w-4 text-green-600" />
+                )}
+                <span
+                  className={
+                    expensesChange.type === "increase"
+                      ? "text-red-600"
+                      : "text-green-600"
+                  }
+                >
+                  {expensesChange.value}
+                </span>
+                <span className="ml-1 text-gray-500">{description}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-blue-100">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium text-blue-800">
+                Total Net Earnings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                ${(netEarnings + outerProductStats.profit).toFixed(2)}
+              </div>
+              <div className="mt-1 flex items-center text-sm">
+                {earningsChange.type === "increase" ? (
+                  <ArrowUp className="mr-1 h-4 w-4 text-green-600" />
+                ) : (
+                  <ArrowDown className="mr-1 h-4 w-4 text-red-600" />
+                )}
+                <span
+                  className={
+                    earningsChange.type === "increase"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                >
+                  {earningsChange.value}
+                </span>
+                <span className="ml-1 text-gray-500">{description}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Separate Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Regular Products */}
+        <div className="p-4 bg-gray-50 rounded-lg shadow border border-gray-200">
+          <h3 className="text-lg font-medium mb-3 text-gray-800">
+            Regular Products
+          </h3>
+          <div className="grid grid-cols-1 gap-3">
+            {stats.map((stat, index) => (
+              <Stat
+                key={index}
+                title={stat.title}
+                value={stat.value}
+                change={stat.change}
+                description={stat.description}
+                icon={stat.icon}
+                loading={loading}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Outer Products */}
+        <div className="p-4 bg-blue-50 rounded-lg shadow border border-blue-100">
+          <h3 className="text-lg font-medium mb-3 text-blue-800">
+            Outer Products
+          </h3>
+          <div className="grid grid-cols-1 gap-3">
+            <Card className="bg-white border-blue-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium text-blue-800">
+                  Income
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-900">
+                  ${outerProductStats.income.toFixed(2)}
+                </div>
+                <p className="text-sm text-blue-600 mt-1">
+                  Total outer product sales
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-blue-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium text-blue-800">
+                  Expenses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-900">
+                  ${outerProductStats.expenses.toFixed(2)}
+                </div>
+                <p className="text-sm text-blue-600 mt-1">
+                  Total outer product costs
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-blue-100">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-medium text-blue-800">
+                  Profit
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  ${outerProductStats.profit.toFixed(2)}
+                </div>
+                <p className="text-sm text-blue-600 mt-1">
+                  Net profit from outer products
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
 
       {/* Bar Chart for Income, Expenses, Net Profit */}
@@ -672,6 +972,15 @@ export function RevenueStats() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 text-sm text-gray-500 bg-gray-50 p-4 rounded-lg">
+        <p className="font-medium text-gray-700 mb-1">About Outer Products</p>
+        <p>
+          Outer products are items that are only sold by the admin, not bought
+          and sold like regular products. The expenses and income for outer
+          products are calculated separately from regular inventory items.
+        </p>
       </div>
     </div>
   );

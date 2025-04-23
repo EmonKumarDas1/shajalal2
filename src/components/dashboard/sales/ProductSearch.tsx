@@ -400,6 +400,124 @@ export function ProductSearch({ onAddToCart, shopId }: ProductSearchProps) {
         </div>
       </div>
 
+      {/* Filter Panel - Horizontal Layout */}
+      <div className="bg-white p-4 rounded-lg border shadow-sm">
+        <h3 className="text-sm font-medium mb-3">Filter Products</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="supplierFilterInline">Supplier</Label>
+            <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+              <SelectTrigger id="supplierFilterInline" className="w-full">
+                <SelectValue placeholder="All Suppliers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Suppliers</SelectItem>
+                {suppliers.map((supplier) => (
+                  <SelectItem key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="wattFilterInline">Watt</Label>
+            <Input
+              id="wattFilterInline"
+              placeholder="Filter by watt"
+              value={wattFilter}
+              onChange={(e) => setWattFilter(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="buyingPriceFilter">Buying Price</Label>
+            <Input
+              id="buyingPriceFilter"
+              placeholder="Filter by buying price"
+              type="number"
+              min="0"
+              step="0.01"
+              onChange={(e) => {
+                // You'll need to add this filter logic
+                handleSearch();
+              }}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="sizeFilterInline">Size</Label>
+            <Input
+              id="sizeFilterInline"
+              placeholder="Filter by size"
+              value={sizeFilter}
+              onChange={(e) => setSizeFilter(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="colorFilterInline">Color</Label>
+            <Input
+              id="colorFilterInline"
+              placeholder="Filter by color"
+              value={colorFilter}
+              onChange={(e) => setColorFilter(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="modelFilterInline">Model</Label>
+            <Input
+              id="modelFilterInline"
+              placeholder="Filter by model"
+              value={modelFilter}
+              onChange={(e) => setModelFilter(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="shopFilterInline">Shop</Label>
+            <Select value={shopFilter} onValueChange={setShopFilter}>
+              <SelectTrigger id="shopFilterInline" className="w-full">
+                <SelectValue placeholder="All Shops" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Shops</SelectItem>
+                {shops.map((shop) => (
+                  <SelectItem key={shop.id} value={shop.id}>
+                    {shop.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex justify-end mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSupplierFilter("all");
+              setShopFilter(shopId || "all");
+              setWattFilter("");
+              setSizeFilter("");
+              setColorFilter("");
+              setModelFilter("");
+              handleSearch();
+            }}
+            className="mr-2"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Reset Filters
+          </Button>
+          <Button size="sm" onClick={handleSearch}>
+            Apply Filters
+          </Button>
+        </div>
+      </div>
+
       {(supplierFilter !== "all" ||
         shopFilter !== "all" ||
         wattFilter ||
@@ -519,11 +637,16 @@ export function ProductSearch({ onAddToCart, shopId }: ProductSearchProps) {
           {products.map((product) => {
             const { status, label } = getStockStatus(product.quantity);
             return (
-              <Card key={product.id} className="overflow-hidden">
+              <Card
+                key={product.id}
+                className="overflow-hidden hover:shadow-md transition-shadow duration-200"
+              >
                 <CardContent className="p-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-medium">{product.name}</h3>
+                  <div className="flex flex-col h-full">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-medium text-lg truncate">
+                        {product.name}
+                      </h3>
                       <Badge
                         variant="outline"
                         className={getStatusColor(status)}
@@ -532,35 +655,72 @@ export function ProductSearch({ onAddToCart, shopId }: ProductSearchProps) {
                       </Badge>
                     </div>
 
-                    <div className="text-sm text-gray-500 space-y-1">
-                      <p>
-                        Supplier:{" "}
-                        {productSuppliers[product.supplier_id] || "Unknown"}
-                      </p>
-                      {product.barcode && <p>Barcode: {product.barcode}</p>}
-                      {product.watt && <p>Wattage: {product.watt}W</p>}
-                      {product.size && <p>Size: {product.size}</p>}
-                      {product.color && <p>Color: {product.color}</p>}
-                      {product.model && <p>Model: {product.model}</p>}
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-sm text-gray-600 mb-3">
+                      <div className="col-span-2 flex items-center gap-1 mb-1">
+                        <span className="font-medium">Supplier:</span>
+                        <span className="truncate">
+                          {productSuppliers[product.supplier_id] || "Unknown"}
+                        </span>
+                      </div>
+
+                      {product.barcode && (
+                        <div className="col-span-2 flex items-center gap-1">
+                          <span className="font-medium">Barcode:</span>
+                          <span className="font-mono text-xs bg-gray-100 px-1 rounded">
+                            {product.barcode}
+                          </span>
+                        </div>
+                      )}
+
+                      {product.watt && (
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Watt:</span>
+                          <span>{product.watt}W</span>
+                        </div>
+                      )}
+
+                      {product.size && (
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Size:</span>
+                          <span>{product.size}</span>
+                        </div>
+                      )}
+
+                      {product.color && (
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Color:</span>
+                          <span>{product.color}</span>
+                        </div>
+                      )}
+
+                      {product.model && (
+                        <div className="flex items-center gap-1">
+                          <span className="font-medium">Model:</span>
+                          <span>{product.model}</span>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex justify-between items-center pt-2 border-t">
+                    <div className="mt-auto flex justify-between items-center pt-3 border-t">
                       <div>
-                        <p className="text-lg font-bold">
+                        <p className="text-lg font-bold text-blue-700">
                           ${product.selling_price.toFixed(2)}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Available: {product.quantity}
+                          Available:{" "}
+                          <span className="font-medium">
+                            {product.quantity}
+                          </span>
                         </p>
                       </div>
                       <Button
                         size="sm"
                         onClick={() => onAddToCart(product)}
                         disabled={product.quantity <= 0}
-                        className="flex items-center gap-1"
+                        className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700"
                       >
                         <Plus className="h-3.5 w-3.5" />
-                        Add
+                        Add to Cart
                       </Button>
                     </div>
                   </div>

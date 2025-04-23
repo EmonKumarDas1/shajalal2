@@ -573,7 +573,7 @@ export function SellProductForm() {
                     <Button
                       variant="default"
                       className="w-full mt-2"
-                      onClick={() => setActiveTab("cart")} // Switch to cart tab
+                      onClick={() => setActiveTab("cart")}
                     >
                       View Cart
                     </Button>
