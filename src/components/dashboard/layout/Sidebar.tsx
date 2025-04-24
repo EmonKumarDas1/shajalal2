@@ -27,7 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 type NavItem = {
@@ -174,6 +174,14 @@ export default function Sidebar({
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+
+  // Dispatch custom event when sidebar state changes
+  useEffect(() => {
+    const event = new CustomEvent("sidebarStateChange", {
+      detail: { expanded: !collapsed, width: collapsed ? 70 : 280 },
+    });
+    window.dispatchEvent(event);
+  }, [collapsed]);
 
   const renderNavSection = (items: NavItem[], title: string) => (
     <div className="space-y-1.5">

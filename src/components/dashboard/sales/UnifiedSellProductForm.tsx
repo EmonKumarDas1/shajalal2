@@ -1358,65 +1358,162 @@ export function UnifiedSellProductForm({
                       </div>
 
                       {/* Profit calculation for outer products */}
-                      {cartItems.some((item) => item.type === "outer") && (
-                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-md mt-4">
-                          <h4 className="font-medium text-blue-700 mb-2">
-                            Outer Products Summary
-                          </h4>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-blue-700">Total Cost:</span>
-                              <span className="font-medium">
-                                $
-                                {cartItems
-                                  .filter((item) => item.type === "outer")
-                                  .reduce(
-                                    (sum, item) =>
-                                      sum + item.buying_price * item.quantity,
-                                    0,
-                                  )
-                                  .toFixed(2)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-blue-700">
-                                Total Revenue:
-                              </span>
-                              <span className="font-medium">
-                                $
-                                {cartItems
-                                  .filter((item) => item.type === "outer")
-                                  .reduce(
-                                    (sum, item) =>
-                                      sum +
-                                      (item.subtotal - item.discount_amount),
-                                    0,
-                                  )
-                                  .toFixed(2)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-blue-700">
-                                Estimated Profit:
-                              </span>
-                              <span className="font-medium text-green-600">
-                                $
-                                {cartItems
-                                  .filter((item) => item.type === "outer")
-                                  .reduce(
-                                    (sum, item) =>
-                                      sum +
-                                      (item.subtotal -
-                                        item.discount_amount -
-                                        item.buying_price * item.quantity),
-                                    0,
-                                  )
-                                  .toFixed(2)}
-                              </span>
-                            </div>
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-md mt-4">
+                        <h4 className="font-medium text-blue-700 mb-2">
+                          Combined Financial Summary
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          {/* Regular Products Summary */}
+                          <div className="flex justify-between">
+                            <span className="text-blue-700">
+                              Regular Products Revenue:
+                            </span>
+                            <span className="font-medium">
+                              $
+                              {cartItems
+                                .filter((item) => item.type === "regular")
+                                .reduce(
+                                  (sum, item) =>
+                                    sum +
+                                    (item.subtotal - item.discount_amount),
+                                  0,
+                                )
+                                .toFixed(2)}
+                            </span>
+                          </div>
+
+                          {/* Regular Products Cost (if available) */}
+                          <div className="flex justify-between">
+                            <span className="text-blue-700">
+                              Regular Products Cost:
+                            </span>
+                            <span className="font-medium">
+                              $
+                              {cartItems
+                                .filter((item) => item.type === "regular")
+                                .reduce(
+                                  (sum, item) =>
+                                    sum + item.buying_price * item.quantity,
+                                  0,
+                                )
+                                .toFixed(2)}
+                            </span>
+                          </div>
+
+                          {/* Outer Products Summary */}
+                          {cartItems.some((item) => item.type === "outer") && (
+                            <>
+                              <div className="flex justify-between mt-2 pt-2 border-t border-blue-200">
+                                <span className="text-blue-700">
+                                  Outer Products Revenue:
+                                </span>
+                                <span className="font-medium">
+                                  $
+                                  {cartItems
+                                    .filter((item) => item.type === "outer")
+                                    .reduce(
+                                      (sum, item) =>
+                                        sum +
+                                        (item.subtotal - item.discount_amount),
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-blue-700">
+                                  Outer Products Cost:
+                                </span>
+                                <span className="font-medium">
+                                  $
+                                  {cartItems
+                                    .filter((item) => item.type === "outer")
+                                    .reduce(
+                                      (sum, item) =>
+                                        sum + item.buying_price * item.quantity,
+                                      0,
+                                    )
+                                    .toFixed(2)}
+                                </span>
+                              </div>
+                            </>
+                          )}
+
+                          {/* Total Revenue (Combined) */}
+                          <div className="flex justify-between pt-2 mt-2 border-t border-blue-200 text-base">
+                            <span className="text-blue-700 font-medium">
+                              Total Revenue:
+                            </span>
+                            <span className="font-medium">
+                              $
+                              {cartItems
+                                .reduce(
+                                  (sum, item) =>
+                                    sum +
+                                    (item.subtotal - item.discount_amount),
+                                  0,
+                                )
+                                .toFixed(2)}
+                            </span>
+                          </div>
+
+                          {/* Total Cost (Combined) */}
+                          <div className="flex justify-between text-base">
+                            <span className="text-blue-700 font-medium">
+                              Total Cost:
+                            </span>
+                            <span className="font-medium">
+                              $
+                              {cartItems
+                                .reduce(
+                                  (sum, item) =>
+                                    sum + item.buying_price * item.quantity,
+                                  0,
+                                )
+                                .toFixed(2)}
+                            </span>
+                          </div>
+
+                          {/* Estimated Profit */}
+                          <div className="flex justify-between text-base">
+                            <span className="text-blue-700 font-medium">
+                              Estimated Profit:
+                            </span>
+                            <span className="font-medium text-green-600">
+                              $
+                              {cartItems
+                                .reduce((sum, item) => {
+                                  const revenue =
+                                    item.subtotal - item.discount_amount;
+                                  const cost =
+                                    item.buying_price * item.quantity;
+                                  return sum + (revenue - cost);
+                                }, 0)
+                                .toFixed(2)}
+                            </span>
+                          </div>
+
+                          {/* Advance Payment */}
+                          <div className="flex justify-between pt-2 mt-2 border-t border-blue-200">
+                            <span className="text-blue-700 font-medium">
+                              Advance Payment:
+                            </span>
+                            <span className="font-medium">
+                              ${parseFloat(advancePayment || "0").toFixed(2)}
+                            </span>
+                          </div>
+
+                          {/* Remaining Amount */}
+                          <div className="flex justify-between">
+                            <span className="text-blue-700 font-medium">
+                              Remaining Amount:
+                            </span>
+                            <span className="font-medium text-red-600">
+                              ${remainingAmount.toFixed(2)}
+                            </span>
                           </div>
                         </div>
-                      )}
+                      </div>
 
                       <Button
                         type="submit"
