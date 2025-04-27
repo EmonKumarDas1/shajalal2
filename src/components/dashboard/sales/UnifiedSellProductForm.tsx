@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
 import { Product } from "@/types/schema";
-import { Trash2, Plus, ShoppingCart, FileText } from "lucide-react";
+import { Trash2, Plus, ShoppingCart, FileText, Package } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -570,6 +570,9 @@ export function UnifiedSellProductForm({
         discount_amount: item.discount_amount || 0,
         is_outer_product: item.type === "outer",
         buying_price: item.buying_price || 0,
+        size: item.size || null,
+        color: item.color || null,
+        model: item.model || null,
       }));
 
       const { error: itemsError } = await supabase

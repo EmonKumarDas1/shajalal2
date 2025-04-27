@@ -1,18 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "../../../supabase/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
-import { Shop } from "@/types/schema";
 import { Trash2, Plus, FileText } from "lucide-react";
 import {
   Table,
@@ -28,6 +20,11 @@ type ChalanItem = {
   id: string;
   name: string;
   quantity: number;
+  watt: string;
+  color: string;
+  model: string;
+  size: string;
+  price?: number;
 };
 
 interface ChalanFormProps {
@@ -36,41 +33,18 @@ interface ChalanFormProps {
 }
 
 export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
-  const [shopId, setShopId] = useState<string>("");
-  const [shops, setShops] = useState<Shop[]>([]);
+  const [companyName, setCompanyName] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [chalanItems, setChalanItems] = useState<ChalanItem[]>([]);
   const [notes, setNotes] = useState("");
   const [newProductName, setNewProductName] = useState("");
   const [newProductQuantity, setNewProductQuantity] = useState<number>(1);
+  const [newProductWatt, setNewProductWatt] = useState("");
+  const [newProductColor, setNewProductColor] = useState("");
+  const [newProductModel, setNewProductModel] = useState("");
+  const [newProductSize, setNewProductSize] = useState("");
+  const [newProductPrice, setNewProductPrice] = useState<string>("");
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchShops();
-  }, []);
-
-  async function fetchShops() {
-    try {
-      const { data, error } = await supabase
-        .from("shops")
-        .select("*")
-        .order("name");
-
-      if (error) throw error;
-      setShops(data || []);
-
-      if (data && data.length > 0) {
-        setShopId(data[0].id);
-      }
-    } catch (error) {
-      console.error("Error fetching shops:", error);
-      toast({
-        variant: "destructive",
-        title: "Error fetching shops",
-        description: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
 
   const addItemToChalan = () => {
     if (!newProductName.trim()) {
@@ -91,12 +65,27 @@ export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
       return;
     }
 
+    const price = newProductPrice ? parseFloat(newProductPrice) : undefined;
+    if (price !== undefined && price < 0) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Price cannot be negative",
+      });
+      return;
+    }
+
     setChalanItems([
       ...chalanItems,
       {
         id: Date.now().toString(),
         name: newProductName.trim(),
         quantity: newProductQuantity,
+        watt: newProductWatt.trim(),
+        color: newProductColor.trim(),
+        model: newProductModel.trim(),
+        size: newProductSize.trim(),
+        price,
       },
     ]);
 
@@ -105,9 +94,13 @@ export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
       description: `${newProductName.trim()} added to chalan`,
     });
 
-    // Reset form
     setNewProductName("");
     setNewProductQuantity(1);
+    setNewProductWatt("");
+    setNewProductColor("");
+    setNewProductModel("");
+    setNewProductSize("");
+    setNewProductPrice("");
   };
 
   const removeItem = (id: string) => {
@@ -127,11 +120,11 @@ export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!shopId) {
+    if (!companyName.trim()) {
       toast({
         variant: "destructive",
         title: "Validation Error",
-        description: "Please select a shop",
+        description: "Please enter a company name",
       });
       return;
     }
@@ -148,15 +141,13 @@ export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
     try {
       setLoading(true);
 
-      // Generate a unique chalan number
       const chalanNumber = `CHLN-${Date.now().toString().slice(-6)}`;
 
-      // Insert the chalan record
       const { data: chalanData, error: chalanError } = await supabase
         .from("chalans")
         .insert({
           chalan_number: chalanNumber,
-          shop_id: shopId,
+          company_name: companyName.trim(),
           status: "pending",
           notes: notes || null,
           created_at: new Date().toISOString(),
@@ -167,11 +158,15 @@ export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
 
       const chalanId = chalanData[0].id;
 
-      // Insert chalan items
       const chalanItemsData = chalanItems.map((item) => ({
         chalan_id: chalanId,
         product_name: item.name,
         quantity: item.quantity,
+        watt: item.watt || null,
+        color: item.color || null,
+        model: item.model || null,
+        size: item.size || null,
+        price: item.price ?? null,
         created_at: new Date().toISOString(),
       }));
 
@@ -186,7 +181,6 @@ export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
         description: `Chalan #${chalanNumber} has been created successfully`,
       });
 
-      // Navigate to the chalan detail page
       navigate(`/dashboard/chalans/${chalanId}`);
       onSuccess();
     } catch (error) {
@@ -203,22 +197,19 @@ export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sticky top-0 bg-white z-10 py-4">
         <div className="space-y-2">
-          <Label htmlFor="shop">Shop *</Label>
-          <Select value={shopId} onValueChange={setShopId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a shop" />
-            </SelectTrigger>
-            <SelectContent>
-              {shops.map((shop) => (
-                <SelectItem key={shop.id} value={shop.id}>
-                  {shop.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="company-name">Company Name *</Label>
+          <Input
+            id="company-name"
+            placeholder="Enter company name"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="notes">Notes</Label>
@@ -234,42 +225,95 @@ export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
 
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Add Product</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <div className="space-y-2">
-            <Label htmlFor="product-name">Product Name *</Label>
-            <Input
-              id="product-name"
-              placeholder="Enter product name"
-              value={newProductName}
-              onChange={(e) => setNewProductName(e.target.value)}
-            />
+        <div className="space-y-4">
+          {/* First Row */}
+          <div className="flex gap-4 items-end flex-wrap">
+            <div className="space-y-2 min-w-[200px]">
+              <Label htmlFor="product-name">Product Name *</Label>
+              <Input
+                id="product-name"
+                placeholder="Enter product name"
+                value={newProductName}
+                onChange={(e) => setNewProductName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 min-w-[120px]">
+              <Label htmlFor="quantity">Quantity *</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="1"
+                value={newProductQuantity}
+                onChange={(e) =>
+                  setNewProductQuantity(parseInt(e.target.value) || 1)
+                }
+              />
+            </div>
+            <div className="space-y-2 min-w-[120px]">
+              <Label htmlFor="watt">Watt</Label>
+              <Input
+                id="watt"
+                placeholder="Enter watt"
+                value={newProductWatt}
+                onChange={(e) => setNewProductWatt(e.target.value)}
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="quantity">Quantity *</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min="1"
-              value={newProductQuantity}
-              onChange={(e) =>
-                setNewProductQuantity(parseInt(e.target.value) || 1)
-              }
-            />
+          {/* Second Row */}
+          <div className="flex gap-4 items-end flex-wrap">
+            <div className="space-y-2 min-w-[120px]">
+              <Label htmlFor="color">Color</Label>
+              <Input
+                id="color"
+                placeholder="Enter color"
+                value={newProductColor}
+                onChange={(e) => setNewProductColor(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 min-w-[120px]">
+              <Label htmlFor="model">Model</Label>
+              <Input
+                id="model"
+                placeholder="Enter model"
+                value={newProductModel}
+                onChange={(e) => setNewProductModel(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 min-w-[120px]">
+              <Label htmlFor="size">Size</Label>
+              <Input
+                id="size"
+                placeholder="Enter size"
+                value={newProductSize}
+                onChange={(e) => setNewProductSize(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 min-w-[120px]">
+              <Label htmlFor="price">Price</Label>
+              <Input
+                id="price"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Enter price"
+                value={newProductPrice}
+                onChange={(e) => setNewProductPrice(e.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={addItemToChalan}
+              className="flex items-center gap-1 whitespace-nowrap"
+            >
+              <Plus className="h-4 w-4" />
+              Add Product
+            </Button>
           </div>
-          <Button
-            type="button"
-            onClick={addItemToChalan}
-            className="flex items-center gap-1"
-          >
-            <Plus className="h-4 w-4" />
-            Add Product
-          </Button>
         </div>
       </div>
 
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Chalan Items</h3>
-
         {chalanItems.length === 0 ? (
           <div className="text-center py-8 border rounded-md text-gray-500">
             No items added to chalan yet
@@ -280,6 +324,11 @@ export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
+                  <TableHead>Watt</TableHead>
+                  <TableHead>Color</TableHead>
+                  <TableHead>Model</TableHead>
+                  <TableHead>Size</TableHead>
+                  <TableHead>Price</TableHead>
                   <TableHead className="w-[150px]">Quantity</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
@@ -288,6 +337,13 @@ export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
                 {chalanItems.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.watt || "-"}</TableCell>
+                    <TableCell>{item.color || "-"}</TableCell>
+                    <TableCell>{item.model || "-"}</TableCell>
+                    <TableCell>{item.size || "-"}</TableCell>
+                    <TableCell>
+                      {item.price !== undefined ? item.price.toFixed(2) : "-"}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <Button
@@ -346,7 +402,7 @@ export function ChalanForm({ onSuccess, onCancel }: ChalanFormProps) {
         )}
       </div>
 
-      <div className="flex justify-end gap-3 pt-6">
+      <div className="flex justify-end gap-3 pt-6 sticky bottom-0 bg-white z-10 py-4">
         <Button
           type="button"
           variant="outline"

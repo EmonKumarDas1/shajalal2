@@ -30,8 +30,7 @@ type Chalan = {
   id: string;
   chalan_number: string;
   created_at: string;
-  shop_id: string;
-  shop_name?: string;
+  company_name: string;
   status: "pending" | "delivered" | "cancelled";
   notes?: string;
 };
@@ -70,7 +69,6 @@ export function ChalanTable({ onEdit }: ChalanTableProps) {
   async function fetchChalans() {
     try {
       setLoading(true);
-      // First, fetch all chalans
       const { data: chalansData, error: chalansError } = await supabase
         .from("chalans")
         .select("*")
@@ -78,38 +76,7 @@ export function ChalanTable({ onEdit }: ChalanTableProps) {
 
       if (chalansError) throw chalansError;
 
-      // Get unique shop IDs
-      const shopIds =
-        chalansData
-          ?.filter((chalan) => chalan.shop_id)
-          .map((chalan) => chalan.shop_id) || [];
-
-      const uniqueShopIds = [...new Set(shopIds)];
-
-      // Fetch shop data if there are shop IDs
-      let shopMap = {};
-      if (uniqueShopIds.length > 0) {
-        const { data: shopsData, error: shopsError } = await supabase
-          .from("shops")
-          .select("id, name")
-          .in("id", uniqueShopIds);
-
-        if (shopsError) throw shopsError;
-
-        // Create a map of shop id to shop name
-        shopMap = (shopsData || []).reduce((map, shop) => {
-          map[shop.id] = shop.name;
-          return map;
-        }, {});
-      }
-
-      // Combine chalan data with shop data
-      const formattedChalans = (chalansData || []).map((chalan) => ({
-        ...chalan,
-        shop_name: chalan.shop_id ? shopMap[chalan.shop_id] : null,
-      }));
-
-      setChalans(formattedChalans);
+      setChalans(chalansData || []);
     } catch (error) {
       console.error("Error fetching chalans:", error);
       toast({
@@ -201,7 +168,7 @@ export function ChalanTable({ onEdit }: ChalanTableProps) {
     const searchLower = searchQuery.toLowerCase();
     return (
       chalan.chalan_number.toLowerCase().includes(searchLower) ||
-      (chalan.shop_name?.toLowerCase() || "").includes(searchLower)
+      (chalan.company_name?.toLowerCase() || "").includes(searchLower)
     );
   });
 
@@ -237,7 +204,7 @@ export function ChalanTable({ onEdit }: ChalanTableProps) {
               <TableRow>
                 <TableHead>Chalan #</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>Shop</TableHead>
+                <TableHead>Company</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -251,7 +218,7 @@ export function ChalanTable({ onEdit }: ChalanTableProps) {
                   <TableCell>
                     {format(new Date(chalan.created_at), "MMM dd, yyyy")}
                   </TableCell>
-                  <TableCell>{chalan.shop_name || "N/A"}</TableCell>
+                  <TableCell>{chalan.company_name || "N/A"}</TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"

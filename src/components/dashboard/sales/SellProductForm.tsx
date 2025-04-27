@@ -586,344 +586,336 @@ export function SellProductForm() {
 
         <TabsContent value="cart" className="space-y-6 mt-4">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2">
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-medium mb-4">Shopping Cart</h3>
+            <div className="grid grid-cols-1 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-medium mb-4">Shopping Cart</h3>
 
-                    {cartItems.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        Your cart is empty. Add products to proceed with the
-                        sale.
-                      </div>
-                    ) : (
-                      <div className="border rounded-md overflow-auto max-h-[400px]">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Product</TableHead>
-                              <TableHead>Supplier</TableHead>
-                              <TableHead>Price</TableHead>
-                              <TableHead>Quantity</TableHead>
-                              <TableHead>Discount</TableHead>
-                              <TableHead>Subtotal</TableHead>
-                              <TableHead className="w-[50px]"></TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {cartItems.map((item) => (
-                              <TableRow key={item.id}>
-                                <TableCell>
-                                  <div>
-                                    <p className="font-medium">{item.name}</p>
-                                    {item.barcode && (
-                                      <p className="text-xs text-gray-500">
-                                        Barcode: {item.barcode}
-                                      </p>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>{item.supplier_name}</TableCell>
-                                <TableCell>
-                                  <Input
-                                    type="number"
-                                    min="0.01"
-                                    step="0.01"
-                                    value={item.selling_price}
-                                    onChange={(e) => {
-                                      const newPrice =
-                                        parseFloat(e.target.value) || 0;
-                                      handlePriceChange(item.id, newPrice);
-                                    }}
-                                    className="w-24 text-right"
-                                  />
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center space-x-2">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      onClick={() =>
-                                        handleQuantityChange(
-                                          item.id,
-                                          item.quantity - 1,
-                                        )
-                                      }
-                                      disabled={item.quantity <= 1}
-                                    >
-                                      -
-                                    </Button>
-                                    <Input
-                                      type="number"
-                                      min="1"
-                                      max={item.available_quantity}
-                                      value={item.quantity}
-                                      onChange={(e) =>
-                                        handleQuantityChange(
-                                          item.id,
-                                          parseInt(e.target.value) || 1,
-                                        )
-                                      }
-                                      className="w-16 text-center"
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      onClick={() =>
-                                        handleQuantityChange(
-                                          item.id,
-                                          item.quantity + 1,
-                                        )
-                                      }
-                                      disabled={
-                                        item.quantity >= item.available_quantity
-                                      }
-                                    >
-                                      +
-                                    </Button>
-                                  </div>
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Available: {item.available_quantity}
-                                  </p>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center space-x-2">
-                                    <Select
-                                      value={item.discount_type}
-                                      onValueChange={(
-                                        value: "percentage" | "fixed",
-                                      ) =>
-                                        handleDiscountChange(
-                                          item.id,
-                                          item.discount,
-                                          value,
-                                        )
-                                      }
-                                    >
-                                      <SelectTrigger className="w-[80px]">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="percentage">
-                                          %
-                                        </SelectItem>
-                                        <SelectItem value="fixed">$</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      step={
-                                        item.discount_type === "percentage"
-                                          ? "1"
-                                          : "0.01"
-                                      }
-                                      value={item.discount}
-                                      onChange={(e) =>
-                                        handleDiscountChange(
-                                          item.id,
-                                          parseFloat(e.target.value) || 0,
-                                          item.discount_type,
-                                        )
-                                      }
-                                      className="w-20"
-                                    />
-                                    {item.discount > 0 && (
-                                      <p className="text-xs text-green-600">
-                                        -${item.discount_amount.toFixed(2)}
-                                      </p>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  $
-                                  {(
-                                    item.subtotal - item.discount_amount
-                                  ).toFixed(2)}
-                                </TableCell>
-                                <TableCell>
+                  {cartItems.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      Your cart is empty. Add products to proceed with the sale.
+                    </div>
+                  ) : (
+                    <div className="border rounded-md overflow-auto max-h-[400px]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Product</TableHead>
+                            <TableHead>Supplier</TableHead>
+                            <TableHead>Price</TableHead>
+                            <TableHead>Quantity</TableHead>
+                            <TableHead>Discount</TableHead>
+                            <TableHead>Subtotal</TableHead>
+                            <TableHead className="w-[50px]"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {cartItems.map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{item.name}</p>
+                                  {item.barcode && (
+                                    <p className="text-xs text-gray-500">
+                                      Barcode: {item.barcode}
+                                    </p>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>{item.supplier_name}</TableCell>
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  min="0.01"
+                                  step="0.01"
+                                  value={item.selling_price}
+                                  onChange={(e) => {
+                                    const newPrice =
+                                      parseFloat(e.target.value) || 0;
+                                    handlePriceChange(item.id, newPrice);
+                                  }}
+                                  className="w-24 text-right"
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center space-x-2">
                                   <Button
                                     type="button"
-                                    variant="ghost"
+                                    variant="outline"
                                     size="icon"
+                                    className="h-8 w-8"
                                     onClick={() =>
-                                      handleRemoveFromCart(item.id)
+                                      handleQuantityChange(
+                                        item.id,
+                                        item.quantity - 1,
+                                      )
                                     }
-                                    className="text-red-500 hover:text-red-700"
+                                    disabled={item.quantity <= 1}
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    -
                                   </Button>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-
-                    <div className="mt-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setActiveTab("products")} // Switch to products tab
-                        className="flex items-center gap-2"
-                      >
-                        <Plus className="h-4 w-4" /> Add More Products
-                      </Button>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    max={item.available_quantity}
+                                    value={item.quantity}
+                                    onChange={(e) =>
+                                      handleQuantityChange(
+                                        item.id,
+                                        parseInt(e.target.value) || 1,
+                                      )
+                                    }
+                                    className="w-16 text-center"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() =>
+                                      handleQuantityChange(
+                                        item.id,
+                                        item.quantity + 1,
+                                      )
+                                    }
+                                    disabled={
+                                      item.quantity >= item.available_quantity
+                                    }
+                                  >
+                                    +
+                                  </Button>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Available: {item.available_quantity}
+                                </p>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center space-x-2">
+                                  <Select
+                                    value={item.discount_type}
+                                    onValueChange={(
+                                      value: "percentage" | "fixed",
+                                    ) =>
+                                      handleDiscountChange(
+                                        item.id,
+                                        item.discount,
+                                        value,
+                                      )
+                                    }
+                                  >
+                                    <SelectTrigger className="w-[80px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="percentage">
+                                        %
+                                      </SelectItem>
+                                      <SelectItem value="fixed">$</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step={
+                                      item.discount_type === "percentage"
+                                        ? "1"
+                                        : "0.01"
+                                    }
+                                    value={item.discount}
+                                    onChange={(e) =>
+                                      handleDiscountChange(
+                                        item.id,
+                                        parseFloat(e.target.value) || 0,
+                                        item.discount_type,
+                                      )
+                                    }
+                                    className="w-20"
+                                  />
+                                  {item.discount > 0 && (
+                                    <p className="text-xs text-green-600">
+                                      -${item.discount_amount.toFixed(2)}
+                                    </p>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                $
+                                {(item.subtotal - item.discount_amount).toFixed(
+                                  2,
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveFromCart(item.id)}
+                                  className="text-red-500 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  )}
 
-              <div>
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-medium mb-4">
-                      Payment Details
-                    </h3>
+                  <div className="mt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setActiveTab("products")} // Switch to products tab
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" /> Add More Products
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Subtotal</Label>
-                        <div className="flex items-center">
-                          <Input
-                            value={`$${subtotal.toFixed(2)}`}
-                            readOnly
-                            className="bg-gray-50"
-                          />
-                        </div>
-                      </div>
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-medium mb-4">Payment Details</h3>
 
-                      <div className="space-y-2">
-                        <Label>Discount</Label>
-                        <div className="flex items-center space-x-2">
-                          <Select
-                            value={discountType}
-                            onValueChange={(value: "percentage" | "fixed") =>
-                              setDiscountType(value)
-                            }
-                          >
-                            <SelectTrigger className="w-[110px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="percentage">
-                                Percentage
-                              </SelectItem>
-                              <SelectItem value="fixed">Fixed</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Input
-                            type="number"
-                            min="0"
-                            step={discountType === "percentage" ? "1" : "0.01"}
-                            value={discountValue}
-                            onChange={(e) => setDiscountValue(e.target.value)}
-                            placeholder={
-                              discountType === "percentage" ? "0%" : "$0.00"
-                            }
-                          />
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          Discount amount: ${discountAmount.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Tax Rate (%)</Label>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Subtotal</Label>
+                      <div className="flex items-center">
                         <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={taxRate}
-                          onChange={(e) => setTaxRate(e.target.value)}
-                          placeholder="0%"
-                        />
-                        <p className="text-sm text-gray-500">
-                          Tax amount: ${taxAmount.toFixed(2)}
-                        </p>
-                      </div>
-
-                      <Separator />
-
-                      <div className="space-y-2">
-                        <Label>Total Amount</Label>
-                        <Input
-                          value={`$${totalAmount.toFixed(2)}`}
-                          readOnly
-                          className="bg-gray-50 font-bold"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Payment Method</Label>
-                        <Select
-                          value={paymentMethod}
-                          onValueChange={setPaymentMethod}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cash">Cash</SelectItem>
-                            <SelectItem value="card">
-                              Credit/Debit Card
-                            </SelectItem>
-                            <SelectItem value="online">
-                              Online Payment
-                            </SelectItem>
-                            <SelectItem value="bank_transfer">
-                              Bank Transfer
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Advance Payment</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          max={totalAmount}
-                          value={advancePayment}
-                          onChange={(e) => setAdvancePayment(e.target.value)}
-                          placeholder="0.00"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Remaining Amount</Label>
-                        <Input
-                          value={`$${remainingAmount.toFixed(2)}`}
+                          value={`${subtotal.toFixed(2)}`}
                           readOnly
                           className="bg-gray-50"
                         />
                       </div>
-
-                      <Button
-                        type="submit"
-                        className="w-full mt-4"
-                        disabled={loading || cartItems.length === 0}
-                      >
-                        {loading ? (
-                          <span className="flex items-center gap-2">
-                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                            Processing Sale...
-                          </span>
-                        ) : (
-                          "Complete Sale & Generate Invoice"
-                        )}
-                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+
+                    <div className="space-y-2">
+                      <Label>Discount</Label>
+                      <div className="flex items-center space-x-2">
+                        <Select
+                          value={discountType}
+                          onValueChange={(value: "percentage" | "fixed") =>
+                            setDiscountType(value)
+                          }
+                        >
+                          <SelectTrigger className="w-[110px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percentage">
+                              Percentage
+                            </SelectItem>
+                            <SelectItem value="fixed">Fixed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          min="0"
+                          step={discountType === "percentage" ? "1" : "0.01"}
+                          value={discountValue}
+                          onChange={(e) => setDiscountValue(e.target.value)}
+                          placeholder={
+                            discountType === "percentage" ? "0%" : "$0.00"
+                          }
+                        />
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        Discount amount: ${discountAmount.toFixed(2)}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Tax Rate (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={taxRate}
+                        onChange={(e) => setTaxRate(e.target.value)}
+                        placeholder="0%"
+                      />
+                      <p className="text-sm text-gray-500">
+                        Tax amount: ${taxAmount.toFixed(2)}
+                      </p>
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-2">
+                      <Label>Total Amount</Label>
+                      <Input
+                        value={`${totalAmount.toFixed(2)}`}
+                        readOnly
+                        className="bg-gray-50 font-bold"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Payment Method</Label>
+                      <Select
+                        value={paymentMethod}
+                        onValueChange={setPaymentMethod}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="card">
+                            Credit/Debit Card
+                          </SelectItem>
+                          <SelectItem value="online">Online Payment</SelectItem>
+                          <SelectItem value="bank_transfer">
+                            Bank Transfer
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Advance Payment</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        max={totalAmount}
+                        value={advancePayment}
+                        onChange={(e) => setAdvancePayment(e.target.value)}
+                        placeholder="0.00"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Remaining Amount</Label>
+                      <Input
+                        value={`${remainingAmount.toFixed(2)}`}
+                        readOnly
+                        className="bg-gray-50"
+                      />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+                      disabled={loading || cartItems.length === 0}
+                    >
+                      {loading ? (
+                        <span className="flex items-center gap-2">
+                          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          Processing Sale...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          Complete Sale & Generate Invoice
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </form>
         </TabsContent>

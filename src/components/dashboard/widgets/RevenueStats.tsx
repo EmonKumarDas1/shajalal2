@@ -587,6 +587,7 @@ export function RevenueStats() {
           incomeTitle: "Daily Income",
           expenseTitle: "Daily Expenses",
           earningsTitle: "Daily Net Earnings",
+          advanceTitle: "Daily Advance Payments",
           description: "vs. yesterday",
         };
       case "monthly":
@@ -594,6 +595,7 @@ export function RevenueStats() {
           incomeTitle: "Monthly Income",
           expenseTitle: "Monthly Expenses",
           earningsTitle: "Monthly Net Earnings",
+          advanceTitle: "Monthly Advance Payments",
           description: "vs. last month",
         };
       case "yearly":
@@ -601,6 +603,7 @@ export function RevenueStats() {
           incomeTitle: "Yearly Income",
           expenseTitle: "Yearly Expenses",
           earningsTitle: "Yearly Net Earnings",
+          advanceTitle: "Yearly Advance Payments",
           description: "vs. last year",
         };
       case "custom":
@@ -608,6 +611,7 @@ export function RevenueStats() {
           incomeTitle: "Custom Period Income",
           expenseTitle: "Custom Period Expenses",
           earningsTitle: "Custom Period Net Earnings",
+          advanceTitle: "Custom Period Advance Payments",
           description: "vs. previous period",
         };
       default:
@@ -615,13 +619,19 @@ export function RevenueStats() {
           incomeTitle: "Income",
           expenseTitle: "Expenses",
           earningsTitle: "Net Earnings",
+          advanceTitle: "Advance Payments",
           description: "period comparison",
         };
     }
   };
 
-  const { incomeTitle, expenseTitle, earningsTitle, description } =
-    getTimeFilterDetails();
+  const {
+    incomeTitle,
+    expenseTitle,
+    earningsTitle,
+    advanceTitle,
+    description,
+  } = getTimeFilterDetails();
 
   const stats = [
     {
